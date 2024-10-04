@@ -114,9 +114,10 @@ Laravel users can also use the Guardian facade:
 ```php
 use Midnite81\Guardian\Facades\Guardian;
 
-Guardian::setIdentifier('my-api');
-Guardian::addRules([RateLimitRule::allow(100)->perMinute()]);
-Guardian::addErrorRules([ErrorHandlingRule::allowFailures(5)->perMinute()]);
+$guardian = Guardian::make(
+                    'weather-conditions-api', 
+                    [RateLimitRule::allow(100)->perMinute()]
+                    );
 ```
 
 ### Cache Drivers
