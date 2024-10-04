@@ -1,0 +1,75 @@
+{
+    "name": "midnite81/guardian",
+    "version": "1.0.0",
+    "autoload": {
+        "psr-4": {
+            "Midnite81\\Guardian\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Midnite81\\Guardian\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Simon Rogers",
+            "email": "webdev@midnite.uk"
+        }
+    ],
+    "require": {
+        "php": ">8.2"
+    },
+    "require-dev": {
+        "illuminate/cache": "^11.25",
+        "illuminate/support": "^11.25",
+        "laravel/pint": "^1.18",
+        "mockery/mockery": "^1.6",
+        "orchestra/testbench": "^9.5",
+        "pestphp/pest": "^3.2",
+        "pestphp/pest-plugin-type-coverage": "^3.0",
+        "nikic/php-parser": "^4.17 || ^5.0",
+        "phpstan/phpstan": "^1.12",
+        "spatie/ray": "^1.41"
+    },
+    "scripts": {
+        "pest": "vendor/bin/pest",
+        "pint": "vendor/bin/pint",
+        "stan": "@php -d xdebug.mode=off -d memory_limit=-1 vendor/bin/phpstan analyse src",
+        "open": "open build/html/index.html",
+        "cov": "@coverage",
+        "coverage": [
+            "echo 'Testing with coverage'",
+            "XDEBUG_MODE=coverage ./vendor/bin/pest --parallel --processes=24 --coverage --coverage-html build/html --coverage-clover build/coverage.xml --coverage-text build/coverage.txt",
+            "open build/html/index.html"
+        ],
+        "coverage-min": "XDEBUG_MODE=coverage ./vendor/bin/pest --parallel --processes=24 --coverage --min=80",
+        "test": [
+            "@pint",
+            "@pest",
+            "@stan",
+            "@coverage"
+        ],
+        "before-pr": [
+            "@pint",
+            "@pest",
+            "@stan",
+            "@coverage-min"
+        ]
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Midnite81\\Guardian\\Providers\\GuardianProvider"
+            ],
+            "aliases": {
+                "Guardian": "Midnite81\\Guardian\\Facades\\Guardian"
+            }
+        }
+    }
+}

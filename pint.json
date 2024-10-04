@@ -1,0 +1,22 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "declare_strict_types": true,
+        "native_function_invocation": false,
+        "not_operator_with_space": false,
+        "not_operator_with_successor_space": false,
+        "no_superfluous_phpdoc_tags": false,
+        "phpdoc_var_without_name": false,
+        "single_line_empty_body": false,
+        "concat_space": {
+            "spacing": "one"
+        },
+        "types_spaces": {
+            "space": "none",
+            "space_multiple_catch": "none"
+        },
+        "phpdoc_align": {
+            "align": "left"
+        }
+    }
+}
