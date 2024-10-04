@@ -65,20 +65,18 @@ it('can add error handling rules', function () {
     expect($guardian->getErrorRules())->not->toBeNull();
 });
 
-
 it('can add error handling rules when already set', function () {
     $guardian = new Guardian(
         'test',
         new LaravelStore(app('cache.store')),
-        errorRules: new CustomErrorRules());
+        errorRules: new CustomErrorRules);
 
     $guardian->addErrorRules([
-       ErrorHandlingRule::allowFailures(3)->perMinute(),
+        ErrorHandlingRule::allowFailures(3)->perMinute(),
     ]);
 
     expect($guardian->getErrorRules()->getRules())->toHaveCount(2);
 });
-
 
 it('allows execution when no rules are set', function () {
     $guardian = new Guardian('test', new LaravelStore(app('cache.store')));
