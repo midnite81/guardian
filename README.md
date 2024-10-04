@@ -1,29 +1,31 @@
 # Guardian
 
-Guardian is a powerful and flexible rate limiting and error handling library for PHP applications. It provides a robust system for managing API rate limits, preventing abuse, and handling errors gracefully. Guardian can be used in any PHP project and has built-in support for Laravel applications.
+Guardian is a powerful and flexible rate limiting and error handling library for PHP applications. It provides a robust
+system for managing API rate limits, preventing abuse, and handling errors gracefully. Guardian can be used in any PHP
+project and has built-in support for Laravel applications.
 
 ## Table of Contents
 
 - [Installation](#installation)
 - [Usage](#usage)
-  - [Creating a Guardian Instance](#creating-a-guardian-instance)
-    - [Using Factories (Recommended)](#using-factories-recommended)
-    - [Direct Class Instantiation](#direct-class-instantiation)
-    - [Dependency Injection (Laravel)](#dependency-injection-laravel)
-    - [Facade (Laravel)](#facade-laravel)
-  - [Cache Drivers](#cache-drivers)
-    - [Available Cache Drivers](#available-cache-drivers)
-    - [Creating Custom Cache Drivers](#creating-custom-cache-drivers)
-  - [Rate Limiting Rules](#rate-limiting-rules)
-    - [Creating Rate Limit Rules](#creating-rate-limit-rules)
-    - [Creating Custom Rulesets](#creating-custom-rulesets)
-  - [Error Handling Rules](#error-handling-rules)
-    - [Creating Error Handling Rules](#creating-error-handling-rules)
-    - [Creating Custom Error Handling Rulesets](#creating-custom-error-handling-rulesets)
+    - [Creating a Guardian Instance](#creating-a-guardian-instance)
+        - [Using Factories (Recommended)](#using-factories-recommended)
+        - [Direct Class Instantiation](#direct-class-instantiation)
+        - [Dependency Injection (Laravel)](#dependency-injection-laravel)
+        - [Facade (Laravel)](#facade-laravel)
+    - [Cache Drivers](#cache-drivers)
+        - [Available Cache Drivers](#available-cache-drivers)
+        - [Creating Custom Cache Drivers](#creating-custom-cache-drivers)
+    - [Rate Limiting Rules](#rate-limiting-rules)
+        - [Creating Rate Limit Rules](#creating-rate-limit-rules)
+        - [Creating Custom Rulesets](#creating-custom-rulesets)
+    - [Error Handling Rules](#error-handling-rules)
+        - [Creating Error Handling Rules](#creating-error-handling-rules)
+        - [Creating Custom Error Handling Rulesets](#creating-custom-error-handling-rulesets)
 - [API Reference](#api-reference)
-  - [Guardian Class](#guardian-class)
-  - [RateLimitRule Class](#ratelimitrule-class)
-  - [ErrorHandlingRule Class](#errorhandlingrule-class)
+    - [Guardian Class](#guardian-class)
+    - [RateLimitRule Class](#ratelimitrule-class)
+    - [ErrorHandlingRule Class](#errorhandlingrule-class)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -122,7 +124,8 @@ $guardian = Guardian::make(
 
 ### Cache Drivers
 
-Guardian uses cache drivers to store rate limiting and error handling data. If you're using the agnostic version of Guardian, you need to provide a cache driver that implements the `CacheInterface`.
+Guardian uses cache drivers to store rate limiting and error handling data. If you're using the agnostic version of
+Guardian, you need to provide a cache driver that implements the `CacheInterface`.
 
 #### Available Cache Drivers
 
@@ -181,7 +184,8 @@ $rule = RateLimitRule::allow(10000)->perDay();
 
 #### Creating Custom Rulesets
 
-You can create custom rulesets by implementing the `RateLimitingRulesetInterface` and extending the `AbstractRateLimitingRuleset`:
+You can create custom rulesets by implementing the `RateLimitingRulesetInterface` and extending the
+`AbstractRateLimitingRuleset`:
 
 ```php
 use Midnite81\Guardian\Contracts\Rulesets\RateLimitingRulesetInterface;
@@ -217,7 +221,8 @@ $rule = ErrorHandlingRule::allowFailures(50)->perHour()->thenThrow(false);
 
 #### Creating Custom Error Handling Rulesets
 
-You can create custom error handling rulesets by implementing the `ErrorHandlingRulesetInterface` and extending the `AbstractErrorHandlingRuleset`:
+You can create custom error handling rulesets by implementing the `ErrorHandlingRulesetInterface` and extending the
+`AbstractErrorHandlingRuleset`:
 
 ```php
 use Midnite81\Guardian\Contracts\Rulesets\ErrorHandlingRulesetInterface;
