@@ -66,9 +66,9 @@ $guardian = GuardianFactory::create(
 For Laravel projects:
 
 ```php
-use Midnite81\Guardian\Facades\Guardian;
+use Midnite81\Guardian\Factories\LaravelGuardianFactory;
 
-$guardian = Guardian::make(
+$guardian = LaravelGuardianFactory::make(
     'my-api',
     [RateLimitRule::allow(100)->perMinute()],
     [ErrorHandlingRule::allowFailures(5)->perMinute()]
