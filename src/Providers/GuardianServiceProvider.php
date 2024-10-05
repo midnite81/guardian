@@ -27,6 +27,7 @@ class GuardianServiceProvider extends ServiceProvider
     {
         $this->registerGuardian();
         $this->registerGuardianFactory();
+        $this->registerAlias();
     }
 
     /**
@@ -104,5 +105,17 @@ class GuardianServiceProvider extends ServiceProvider
                 }
             };
         });
+    }
+
+    /**
+     * Registers the alias for the Guardian facade if Laravel version is 11 or greater.
+     *
+     * @return void
+     */
+    protected function registerAlias(): void
+    {
+        if (version_compare($this->app->version(), '11.0.0', '>=')) {
+            $this->app->alias(\Midnite81\Guardian\Facades\Guardian::class, 'Guardian');
+        }
     }
 }

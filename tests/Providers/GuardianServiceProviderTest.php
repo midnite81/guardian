@@ -71,3 +71,16 @@ test('guardian.factory sets error rule when provided', function () {
     expect($sut)->toHaveCount(1)
         ->and($sut)->toBe($errorRules);
 });
+
+it('registers the alias if the version is 11 or greater', function () {
+    $app = Mockery::mock('Illuminate\Contracts\Foundation\Application')->makePartial();
+    $provider = new Midnite81\Guardian\Providers\GuardianServiceProvider($app);
+
+    $app->shouldReceive('version')->andReturn('11.0.0');
+    $app->shouldReceive('alias')->once();
+    $app->shouldReceive('bind');
+    $provider->register();
+
+    \PHPUnit\Framework\Assert::assertTrue(true);
+    Mockery::close();
+});
