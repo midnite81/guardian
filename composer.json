@@ -65,7 +65,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Midnite81\\Guardian\\Providers\\GuardianProvider"
+                "Midnite81\\Guardian\\Providers\\GuardianServiceProvider"
             ],
             "aliases": {
                 "Guardian": "Midnite81\\Guardian\\Facades\\Guardian"
