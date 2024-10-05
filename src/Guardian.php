@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Midnite81\Guardian;
 
 use Closure;
-use DateMalformedStringException;
+use DateTimeImmutable;
 use Exception;
 use Midnite81\Guardian\Contracts\Rulesets\ErrorHandlingRulesetInterface;
 use Midnite81\Guardian\Contracts\Rulesets\RateLimitingRulesetInterface;
 use Midnite81\Guardian\Contracts\Store\CacheInterface;
 use Midnite81\Guardian\Exceptions\IdentifierCannotBeEmptyException;
+use Midnite81\Guardian\Exceptions\RateLimitExceededException;
 use Midnite81\Guardian\Exceptions\RulePreventsExecutionException;
 use Midnite81\Guardian\Helpers\Arrays;
 use Midnite81\Guardian\Helpers\RulesetPreparator;
@@ -46,8 +47,8 @@ class Guardian
      *
      * @param string $identifier A unique identifier for the instance
      * @param CacheInterface $cache An implementation of cache storage
-     * @param RateLimitingRulesetInterface|array<int, RateLimitRule>|null $rules The rate limiting rules to apply
-     * @param ErrorHandlingRulesetInterface|array<int, ErrorHandlingRule>|null $errorRules The error handling rules to apply
+     * @param RateLimitingRulesetInterface|array<RateLimitRule>|null $rules The rate limiting rules to apply
+     * @param ErrorHandlingRulesetInterface|array<ErrorHandlingRule>|null $errorRules The error handling rules to apply
      * @param string $cachePrefix The prefix to use for cache keys
      *
      * @throws IdentifierCannotBeEmptyException
@@ -60,10 +61,9 @@ class Guardian
         ErrorHandlingRulesetInterface|array|null $errorRules = null,
         protected string $cachePrefix = 'guardian',
     ) {
-        $this->rules = $rules !== null ? RulesetPreparator::prepareRules($rules) : null;
-        $this->errorRules = $errorRules !== null ? RulesetPreparator::prepareErrorRules($errorRules) : null;
-
         $this->setIdentifier($identifier, $this->cachePrefix);
+        $this->setRules($rules);
+        $this->setErrorRules($errorRules);
     }
 
     /**
@@ -74,11 +74,15 @@ class Guardian
      * @return mixed The result of the closure execution, or null if execution was prevented by a rule
      *
      * @throws RulePreventsExecutionException
-     * @throws DateMalformedStringException
+     * @throws RateLimitExceededException
      */
     public function send(Closure $request, bool $throwIfRulePrevents = true): mixed
     {
         $this->preventingRule = null;
+
+        if ($this->isRateLimitExceeded()) {
+            throw new RateLimitExceededException($this->getRateLimitRetryAfter(), 'Rate limit exceeded');
+        }
 
         if ($this->canRun()) {
             try {
@@ -86,6 +90,9 @@ class Guardian
                 $this->incrementRateLimitCounters();
 
                 return $result;
+            } catch (RateLimitExceededException $e) {
+                $this->setRateLimitExceeded($e->getRetryAfter());
+                throw $e;
             } catch (Exception $e) {
                 if ($this->shouldThrow()) {
                     throw $e;
@@ -135,7 +142,7 @@ class Guardian
     /**
      * Sets the rate limiting rules.
      *
-     * @param RateLimitingRulesetInterface|array<int, RateLimitRule>|null $rules The rate limiting rules to apply
+     * @param RateLimitingRulesetInterface|array<RateLimitRule>|null $rules The rate limiting rules to apply
      * @return self Returns the current instance for method chaining
      *
      * @throws Exception
@@ -150,7 +157,7 @@ class Guardian
     /**
      * Sets the error handling rules.
      *
-     * @param ErrorHandlingRulesetInterface|array<int, ErrorHandlingRule>|null $errorRules The error handling rules to apply
+     * @param ErrorHandlingRulesetInterface|array<ErrorHandlingRule>|null $errorRules The error handling rules to apply
      * @return self Returns the current instance for method chaining
      *
      * @throws Exception
@@ -163,9 +170,9 @@ class Guardian
     }
 
     /**
-     * Adds a set of rules to the GenericRuleset.
+     * Adds a set of rules to the existing RateLimitingRuleset.
      *
-     * @param array<int, RateLimitRule> $rules An array of rules to be added
+     * @param array<RateLimitRule> $rules An array of rules to be added
      * @return static The instance with the updated rules
      *
      * @throws Exception
@@ -188,7 +195,7 @@ class Guardian
     /**
      * Adds error handling rules to the current set of error rules.
      *
-     * @param array<int, ErrorHandlingRule> $rules An array of rules to be added
+     * @param array<ErrorHandlingRule> $rules An array of rules to be added
      * @return static The current instance for method chaining
      *
      * @throws Exception
@@ -282,7 +289,6 @@ class Guardian
         $prefix = $this->identifier . ':';
         $keysToDelete = [];
 
-        // Collect all keys with the current identifier prefix
         if ($this->rules) {
             foreach ($this->rules->getRules() as $rule) {
                 $keysToDelete[] = $rule->getKey($prefix);
@@ -295,7 +301,6 @@ class Guardian
             }
         }
 
-        // Delete all collected keys
         $allDeleted = true;
         foreach ($keysToDelete as $key) {
             if (!$this->cache->forget($key)) {
@@ -304,6 +309,60 @@ class Guardian
         }
 
         return $allDeleted;
+    }
+
+    /**
+     * Check if the rate limit has been exceeded.
+     *
+     * @return bool
+     */
+    public function isRateLimitExceeded(): bool
+    {
+        $key = $this->getRateLimitExceededCacheKey();
+        $retryAfter = $this->cache->get($key);
+
+        if ($retryAfter === null) {
+            return false;
+        }
+
+        $now = new DateTimeImmutable;
+
+        return $now < $retryAfter;
+    }
+
+    /**
+     * Get the retry after time for the rate limit.
+     *
+     * @return DateTimeImmutable
+     */
+    public function getRateLimitRetryAfter(): DateTimeImmutable
+    {
+        $key = $this->getRateLimitExceededCacheKey();
+        $retryAfter = $this->cache->get($key);
+
+        return $retryAfter instanceof DateTimeImmutable ? $retryAfter : new DateTimeImmutable;
+    }
+
+    /**
+     * Set the rate limit as exceeded.
+     *
+     * @param DateTimeImmutable $retryAfter
+     */
+    protected function setRateLimitExceeded(DateTimeImmutable $retryAfter): void
+    {
+        $key = $this->getRateLimitExceededCacheKey();
+        $ttl = max(0, $retryAfter->getTimestamp() - time());
+        $this->cache->put($key, $retryAfter, $ttl);
+    }
+
+    /**
+     * Get the cache key for the rate limit exceeded flag.
+     *
+     * @return string
+     */
+    protected function getRateLimitExceededCacheKey(): string
+    {
+        return $this->identifier . ':rate_limit_exceeded';
     }
 
     /**
@@ -385,7 +444,7 @@ class Guardian
      * Checks if an error rule has been triggered.
      *
      * @param ErrorHandlingRule $rule The error handling rule to check
-     * @return bool True if the rule has been triggered, false otherwise*
+     * @return bool True if the rule has been triggered, false otherwise
      */
     protected function checkErrorRule(ErrorHandlingRule $rule): bool
     {

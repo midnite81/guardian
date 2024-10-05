@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Cache;
 use Midnite81\Guardian\Exceptions\IdentifierCannotBeEmptyException;
+use Midnite81\Guardian\Exceptions\RateLimitExceededException;
 use Midnite81\Guardian\Exceptions\RulePreventsExecutionException;
 use Midnite81\Guardian\Guardian;
 use Midnite81\Guardian\Rules\ErrorHandlingRule;
@@ -245,3 +246,48 @@ it('throws exception by default when no error rules are set', function () {
         throw new Exception('Test exception');
     });
 })->throws(Exception::class, 'Test exception');
+
+/******/
+
+it('passes through RateLimitExceededException when thrown in callback', function () {
+    $guardian = new Guardian(
+        'test',
+        new LaravelStore(app('cache.store')),
+        [
+            RateLimitRule::allow(5)->perMinute(),
+        ]
+    );
+
+    $retryAfter = new DateTimeImmutable('+1 minute');
+    $exceptionMessage = 'Rate limit exceeded in callback';
+
+    expect(fn () => $guardian->send(function () use ($retryAfter, $exceptionMessage) {
+        throw new RateLimitExceededException($retryAfter, $exceptionMessage);
+    }))->toThrow(RateLimitExceededException::class, $exceptionMessage);
+});
+
+it('continues to throw RateLimitExceededException after initial exception from callback', function () {
+    $guardian = new Guardian(
+        'test',
+        new LaravelStore(app('cache.store')),
+        [
+            RateLimitRule::allow(5)->perMinute(),
+        ]
+    );
+
+    $retryAfter = new DateTimeImmutable('+1 minute');
+    $exceptionMessage = 'Rate limit exceeded in callback';
+
+    // First call: throws RateLimitExceededException from callback
+    expect(fn () => $guardian->send(function () use ($retryAfter, $exceptionMessage) {
+        throw new RateLimitExceededException($retryAfter, $exceptionMessage);
+    }))->toThrow(RateLimitExceededException::class, $exceptionMessage);
+
+    // Second call: should still throw RateLimitExceededException, but from Guardian itself
+    expect(fn () => $guardian->send(fn () => 'This should not execute'))
+        ->toThrow(RateLimitExceededException::class);
+
+    // Verify that the retry after time is respected
+    expect($guardian->isRateLimitExceeded())->toBeTrue();
+    expect($guardian->getRateLimitRetryAfter())->toEqual($retryAfter);
+});
