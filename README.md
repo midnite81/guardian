@@ -2,7 +2,8 @@
 
 Guardian is a powerful and flexible rate limiting and error handling library for PHP applications. It provides a robust
 system for managing API rate limits, preventing abuse, and handling errors gracefully. Guardian can be used in any PHP
-project and has built-in support for Laravel applications.
+project and has built-in support for Laravel applications. Full
+documentation: [https://guardian.midnite.uk](https://guardian.midnite.uk)
 
 ## Requirements
 
