@@ -1,0 +1,53 @@
+name: Continuous Integration Workflow
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict
+
+      - name: Cache Composer dependencies
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Run pint (code formatting)
+        run: composer run pint
+        continue-on-error: true  # Continue even if pint fails due to formatting issues
+
+      - name: Commit and push pint fixes (if any)
+        if: failure()  # Only run this step if pint made changes (i.e., if pint fails)
+        run: |
+          git config --local user.name "GitHub Actions"
+          git config --local user.email "actions@github.com"
+          git add .
+          git commit -m "Apply Pint fixes"
+          git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref }}
+
+      - name: Run PHPStan (static analysis)
+        run: composer run stan
+
+      - name: Run coverage-min (with 80% minimum coverage requirement)
+        run: composer run coverage-min
