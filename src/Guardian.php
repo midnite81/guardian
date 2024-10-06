@@ -15,6 +15,7 @@ use Midnite81\Guardian\Exceptions\RateLimitExceededException;
 use Midnite81\Guardian\Exceptions\RulePreventsExecutionException;
 use Midnite81\Guardian\Helpers\Arrays;
 use Midnite81\Guardian\Helpers\RulesetPreparator;
+use Midnite81\Guardian\Helpers\Str;
 use Midnite81\Guardian\Rules\ErrorHandlingRule;
 use Midnite81\Guardian\Rules\RateLimitRule;
 use Midnite81\Guardian\Rulesets\GenericErrorHandlingRuleset;
@@ -124,7 +125,8 @@ class Guardian
             throw new IdentifierCannotBeEmptyException('Identifier cannot be empty');
         }
 
-        $safe = preg_replace('/[^a-zA-Z0-9_-]/', '', $identifier);
+        $safe = preg_replace('/[^a-zA-Z0-9_-]/', '_', $identifier);
+        $safePrefix = preg_replace('/[^a-zA-Z0-9_-]/', '_', $prefix);
 
         if (empty($prefix)) {
             if (!preg_match('/^[a-zA-Z]/', $safe ?? '')) {
@@ -136,7 +138,12 @@ class Guardian
             throw new IdentifierCannotBeEmptyException('Identifier cannot be empty');
         }
 
-        $this->identifier = ($prefix ? $prefix . '_' : '') . substr($safe, 0, 128);
+        $this->identifier = Str::of(($safePrefix ? $safePrefix . '_' : '') . substr($safe, 0, 128))
+            ->removeDuplicateCharacters('_')
+            ->removeFinalCharIf('_')
+            ->toLower()
+            ->limit(100)
+            ->toString();
     }
 
     /**

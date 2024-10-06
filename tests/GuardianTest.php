@@ -232,11 +232,48 @@ it('cannot have a blank identifier', function () {
         ->toThrow(IdentifierCannotBeEmptyException::class, 'Identifier cannot be empty');
 });
 
-it('must make safe an identifer starting with a number', function () {
+it('must make safe an identifier starting with a number', function () {
     $guardian = new Guardian('test', new LaravelStore(app('cache.store')));
 
     $guardian->setIdentifier('001', '');
     expect($guardian->getIdentifier())->toBe('id_001');
+});
+
+it('handles various identifier inputs', function () {
+    $guardian = new Guardian('test', new LaravelStore(app('cache.store')));
+
+    // Test with special characters
+    $guardian->setIdentifier('user@123_action/get');
+    expect($guardian->getIdentifier())->toBe('guardian_user_123_action_get');
+
+    // Test with spaces
+    $guardian->setIdentifier('user with spaces');
+    expect($guardian->getIdentifier())->toBe('guardian_user_with_spaces');
+
+    // Test with numbers only
+    $guardian->setIdentifier('12345');
+    expect($guardian->getIdentifier())->toBe('guardian_12345');
+
+    // Test with uppercase letters
+    $guardian->setIdentifier('USER_UPPERCASE');
+    expect($guardian->getIdentifier())->toBe('guardian_user_uppercase');
+
+    // Test with non-alphanumeric characters
+    $guardian->setIdentifier('user!@#$%^&*()');
+    expect($guardian->getIdentifier())->toBe('guardian_user');
+
+    // Test with leading and trailing spaces
+    $guardian->setIdentifier('  trimmed_user  ');
+    expect($guardian->getIdentifier())->toBe('guardian_trimmed_user');
+
+    // Test with very long identifier
+    $longIdentifier = str_repeat('a', 150);
+    $guardian->setIdentifier($longIdentifier);
+    expect($guardian->getIdentifier())->toBe('guardian_' . substr($longIdentifier, 0, 91));
+
+    // Test with a prefix
+    $guardian->setIdentifier('user', 'prefix/prefix');
+    expect($guardian->getIdentifier())->toBe('prefix_prefix_user');
 });
 
 it('throws exception by default when no error rules are set', function () {
