@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        php-version: ['8.2', '8.3']
+        php-version: [ '8.2', '8.3' ]
         include:
           - php-version: '8.3'
             latest: true
@@ -51,16 +51,18 @@ jobs:
 
       - name: Check code style with Pint
         if: matrix.latest == true
+        id: pint-check
         run: composer run pint -- --test
         continue-on-error: true
 
       - name: Apply Pint fixes
-        if: failure() && matrix.latest == true
+        if: matrix.latest == true && steps.pint-check.outcome == 'failure'
         run: |
           composer run pint
           git config --local user.name "GitHub Actions"
           git config --local user.email "actions@github.com"
-          git commit -am "Apply Pint fixes" || echo "No changes to commit"
+          git add .
+          git diff --staged --quiet || git commit -m "Apply Pint fixes"
           git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref }}
 
   phpstan:
