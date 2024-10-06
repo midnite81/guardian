@@ -154,7 +154,8 @@ class Guardian
      *
      * @throws Exception
      */
-    public function setRules(RateLimitingRulesetInterface|array|null $rules = null): self
+    public function
+    setRules(RateLimitingRulesetInterface|array|null $rules = null): self
     {
         $this->rules = $rules !== null ? RulesetPreparator::prepareRules($rules) : null;
 
