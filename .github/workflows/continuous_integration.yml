@@ -11,14 +11,13 @@ permissions:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        php-version: ['8.2', '8.3']  # Define the PHP versions to run
+        php-version: ['8.2', '8.3']
         include:
-          - php-version: '8.3'       # Mark 8.3 as the latest
+          - php-version: '8.3'
             latest: true
 
     steps:
@@ -33,34 +32,94 @@ jobs:
       - name: Validate composer.json and composer.lock
         run: composer validate --strict
 
+      - name: Validate composer.lock is up to date
+        run: composer validate --no-check-all --strict
+
+      - name: Get Composer Cache Directory
+        id: composer-cache-dir
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
       - name: Cache Composer dependencies
-        id: composer-cache
         uses: actions/cache@v3
         with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php-version }}
+          path: ${{ steps.composer-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: Run pint (code formatting)
-        if: matrix.latest == true  # Run pint only on the "latest" version
-        run: composer run pint
+      - name: Check code style with Pint
+        if: matrix.latest == true
+        run: composer run pint -- --test
         continue-on-error: true
 
-      - name: Commit and push pint fixes (if any)
-        if: failure() && matrix.latest == true  # Commit pint fixes only for the latest PHP version
+      - name: Apply Pint fixes
+        if: failure() && matrix.latest == true
         run: |
+          composer run pint
           git config --local user.name "GitHub Actions"
           git config --local user.email "actions@github.com"
-          git add .
-          git commit -m "Apply Pint fixes"
+          git commit -am "Apply Pint fixes" || echo "No changes to commit"
           git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref }}
+
+  phpstan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Get Composer Cache Directory
+        id: composer-cache-dir
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
 
       - name: Run PHPStan (static analysis)
         run: composer run stan
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Get Composer Cache Directory
+        id: composer-cache-dir
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
 
       - name: Run coverage-min (with 80% minimum coverage requirement)
         run: composer run coverage-min
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage
