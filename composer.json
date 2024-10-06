@@ -1,5 +1,6 @@
 {
     "name": "midnite81/guardian",
+    "description": "Guardian is a PHP package that provides a way to wrap HTTP requests so they don't exceed Rate Limiting rules and controls Error Handling",
     "autoload": {
         "psr-4": {
             "Midnite81\\Guardian\\": "src/"
