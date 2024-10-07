@@ -308,6 +308,8 @@ class Guardian
             }
         }
 
+        $keysToDelete[] = $this->getRateLimitExceededCacheKey();
+
         $allDeleted = true;
         foreach ($keysToDelete as $key) {
             if (!$this->cache->forget($key)) {

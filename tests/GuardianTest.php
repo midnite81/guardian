@@ -187,6 +187,7 @@ it('returns false if not each key is cleared from the cache', function () {
     $cache->shouldReceive('forget')->with('guardian_test:rate_limit_5_per_minute')->andReturn(false);
     $cache->shouldReceive('forget')->with('guardian_test:rate_limit_500_per_hour')->andReturn(true);
     $cache->shouldReceive('forget')->with('guardian_test:error:2_minute_1_no_expiry')->andReturn(true);
+    $cache->shouldReceive('forget')->with('guardian_test:rate_limit_exceeded')->andReturn(false);
 
     $guardian = new Guardian('test', $cache, $rules, $errorRules);
 
